@@ -1,5 +1,5 @@
-# Projeto FETIN - Sistema de Triagem Hospitalar
+# FETIN Project - Hospital Triage Automation System
 
-Sistema de automação de triagem hospitalar desenvolvido com Python, FastAPI e MySQL.
+Hospital triage automation system built with Python, FastAPI and MySQL.
 
-> 🚧 Em desenvolvimento
+> 🚧 Under development

@@ -49,4 +49,3 @@ class Queue(Base):
         self.status = status
         self.created_at = created_at
 
-#executa a criaçaõ dos metadados do seu banco (cria efetivamente o banco de dados)

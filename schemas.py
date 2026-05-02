@@ -8,9 +8,6 @@ class PatientInput(BaseModel):
    symptoms: str
    pain_level: int
 
-   class Config:
-        from_attributes = True
-
 class PatientOutput(BaseModel):
     id: int
     full_name: str
@@ -22,6 +19,11 @@ class PatientOutput(BaseModel):
     status: str
     created_at: datetime
 
+    # Allows Pydantic to read objects returned by SQLAlchemy.
     class Config:
         from_attributes = True
-   
+
+        
+class LoginRequest(BaseModel):
+    senha: str   
+

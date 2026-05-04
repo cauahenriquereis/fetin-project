@@ -27,3 +27,5 @@ class PatientOutput(BaseModel):
 class LoginRequest(BaseModel):
     senha: str   
 
+class StatusUpdate(BaseModel):
+    new_status: str

@@ -26,11 +26,12 @@ class Patient(Base):
     status = Column("status", Enum("aguardando", "em atendimento", "atendido", name="patient_status_enum"), nullable=False)
     created_at = Column("created_at", DateTime, nullable=False)
 
-    def __init__ (self, full_name, age, symptoms, pain_level, status, created_at):
+    def __init__ (self, full_name, age, symptoms, pain_level, urgency_level, status, created_at):
         self.full_name = full_name
         self.age = age
         self.symptoms = symptoms
         self.pain_level = pain_level
+        self.urgency_level = urgency_level
         self.status = status
         self.created_at = created_at
 

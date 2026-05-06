@@ -6,19 +6,30 @@ from config import GEMINI_API_KEY
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-def symptoms_analyze(symptoms: str, pain_level: int) -> dict:
+def symptoms_analyze(symptoms: str, pain_level: int, age: int) -> dict:
     prompt = f"""
-    Você é um assistente médico de triagem hospitalar.
-    
-    Um paciente chegou com os seguintes sintomas: {symptoms}
-    Nível de dor relatado: {pain_level}/10
-    
-    Com base nisso, responda APENAS no seguinte formato JSON:
-    {{
-        "urgency_level": "baixa" ou "média" ou "alta",
-        "reasoning": "explicação breve do motivo"
-    }}
-    """
+Você é um assistente médico especialista em triagem hospitalar, com anos de experiência clínica.
+
+Dados do paciente:
+- Idade: {age} anos
+- Sintomas relatados: {symptoms}
+- Nível de dor autorrelatado: {pain_level}/10
+
+Sua tarefa é classificar a urgência do atendimento em: "baixa", "média" ou "alta".
+
+Diretrizes para classificação:
+- Priorize sempre os sintomas clínicos acima do nível de dor relatado, pois pacientes podem superestimar ou subestimar a dor
+- Considere a idade do paciente — idosos e crianças merecem atenção especial para os mesmos sintomas
+- Sintomas que indicam risco de vida imediato (dificuldade respiratória, dor no peito, AVC, desmaio) → sempre "alta"
+- Sintomas moderados que precisam de atenção mas não são emergência → "média"
+- Sintomas leves sem risco aparente → "baixa"
+
+Responda APENAS no seguinte formato JSON, sem texto adicional:
+{{
+    "urgency_level": "baixa" ou "média" ou "alta",
+    "reasoning": "explicação clínica breve e objetiva do motivo da classificação"
+}}
+"""
 
     max_tentativas = 3
     for tentativa in range(1, max_tentativas + 1):

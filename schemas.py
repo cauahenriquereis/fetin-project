@@ -23,9 +23,15 @@ class PatientOutput(BaseModel):
     class Config:
         from_attributes = True
 
+class PatientQueueInfo(BaseModel):
+    patient: PatientOutput
+    queue_position: int
+    waiting_time_minutes: int        
+
         
 class LoginRequest(BaseModel):
     senha: str   
 
 class StatusUpdate(BaseModel):
     new_status: str
+

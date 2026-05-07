@@ -36,18 +36,3 @@ class Patient(Base):
         self.status = status
         self.created_at = created_at
 
-class Queue(Base):
-    __tablename__ = "queue"
-
-    id = Column("id", Integer, primary_key=True, autoincrement=True)
-    patient_id = Column("patient_id", Integer, ForeignKey("patients.id"), nullable=False)
-    position = Column("position", Integer, nullable=False)
-    status = Column("status", Enum("ativo", "removido", name="queue_status_enum"), nullable=False)
-    created_at = Column("created_at", DateTime, nullable=False)
-
-    def __init__ (self, patient_id, position, status, created_at):
-        self.patient_id = patient_id
-        self.position = position
-        self.status = status
-        self.created_at = created_at
-

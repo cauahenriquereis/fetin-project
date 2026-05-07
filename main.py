@@ -5,7 +5,6 @@ from queue_routes import queue_router
 
 app = FastAPI()
 
-
 app.include_router(doctor_router)
 app.include_router(patient_router)
 app.include_router(queue_router)

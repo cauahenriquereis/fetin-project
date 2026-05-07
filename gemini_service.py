@@ -54,7 +54,7 @@ Responda APENAS no seguinte formato JSON, sem texto adicional:
         except genai_errors.ServerError as e:
             print(f"Tentativa {tentativa}/{max_tentativas} falhou: {e}")
             if tentativa < max_tentativas:
-                time.sleep(2)  # espera 2 segundos antes de tentar de novo
+                time.sleep(2) 
             else:
                 return {"urgency_level": "média", "reasoning": "Serviço temporariamente indisponível", "ai_analyzed": False}
 

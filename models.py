@@ -5,7 +5,7 @@ import os
 
 load_dotenv()
 
-# create the connection with the PostgreSQL database
+# Creates the connection engine to the Neon PostgreSQL database
 db = create_engine(os.getenv("DATABASE_URL"))
 
 #create the base of the database
@@ -36,3 +36,5 @@ class Patient(Base):
         self.status = status
         self.created_at = created_at
 
+# Create tables if they don't exist
+Base.metadata.create_all(db)

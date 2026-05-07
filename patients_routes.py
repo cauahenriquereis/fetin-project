@@ -20,12 +20,15 @@ async def register_patient(patient_input: PatientInput, session: Session = Depen
     urgency_order = {"alta": 1, "média": 2, "baixa": 3}
     urgency_weight = urgency_order.get(urgency_level, 2)
 
-    patients_same_urgency = session.query(Patient).filter(
+    last_patient = session.query(Patient).filter(
     Patient.status == "aguardando",
     Patient.urgency_level == urgency_level
-    ).count()
+    ).order_by(Patient.priority_number.desc()).first()
 
-    priority_number = (urgency_weight * 100) + patients_same_urgency
+    if last_patient:
+        priority_number = last_patient.priority_number + 1
+    else:
+        priority_number = urgency_weight * 100
 
     print(f"AI analyzed: {analyze['ai_analyzed']}")
 

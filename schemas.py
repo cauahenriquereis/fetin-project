@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Literal, Optional
 from datetime import datetime
 
 class PatientInput(BaseModel):
@@ -33,5 +33,5 @@ class LoginRequest(BaseModel):
     senha: str   
 
 class StatusUpdate(BaseModel):
-    new_status: str
-
+    # Only accepts valid status values
+    new_status: Literal["aguardando", "em atendimento", "atendido"]

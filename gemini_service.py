@@ -1,5 +1,7 @@
 import json
 import time
+from pydantic import BaseModel, Field
+from typing import Literal
 from google import genai
 from google.genai import types, errors as genai_errors
 from config import GEMINI_API_KEY
@@ -7,29 +9,32 @@ from config import GEMINI_API_KEY
 # Initialize Gemini client once at module level
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-def symptoms_analyze(symptoms: str, pain_level: int, age: int) -> dict:
-    prompt = f"""
-Você é um assistente médico especialista em triagem hospitalar, com anos de experiência clínica.
+# 1. Definimos o Schema (Molde) da resposta esperada usando Pydantic
+class TriageResponse(BaseModel):
+    urgency_level: Literal["baixa", "média", "alta"] = Field(
+        description="Nível de urgência estrito."
+    )
+    reasoning: str = Field(
+        description="Explicação clínica direta, técnica e em terceira pessoa (máx. 2 frases)."
+    )
 
-Dados do paciente:
+def symptoms_analyze(symptoms: str, pain_level: int, age: int) -> dict:
+    # 2. Separamos as regras do sistema (System Instructions)
+    system_instruction = """Você é a IA médica de triagem do sistema hospitalar FETIN, atuando com base em diretrizes rigorosas (semelhantes ao Protocolo de Manchester adaptado para 3 níveis). Sua função é classificar pacientes de forma segura e analítica, focando no risco de morbimortalidade.
+
+DIRETRIZES DE TRIAGEM CLÍNICA:
+1. Peso da Dor vs. Quadro Clínico: A dor é subjetiva. Uma dor 10/10 com sintomas de resfriado leve ou dor crônica continua sendo urgência "baixa". Sempre priorize os sinais vitais presumidos e a natureza dos sintomas descritos.
+2. Fator Etário (Vulnerabilidade): Pacientes nos extremos de idade (menores de 5 anos ou maiores de 65 anos) possuem menor reserva fisiológica. Sintomas moderados nessas faixas etárias devem ter sua gravidade elevada.
+3. Critérios para "alta": Risco de vida imediato ou perda de membro. (ex: dor torácica irradiada, dificuldade respiratória severa, sinais de AVC, sangramento incontrolável).
+4. Critérios para "média": Condições agudas que necessitam de avaliação médica rápida, sem risco de morte iminente. (ex: fraturas fechadas, dor abdominal aguda, cortes profundos).
+5. Critérios para "baixa": Condições crônicas agudizadas, quadros não-urgentes ou queixas leves. (ex: sintomas de vias aéreas superiores, dores musculares sem trauma)."""
+
+    # 3. O prompt do usuário agora recebe apenas os dados crus
+    user_prompt = f"""
+DADOS DO PACIENTE:
 - Idade: {age} anos
 - Sintomas relatados: {symptoms}
-- Nível de dor autorrelatado: {pain_level}/10
-
-Sua tarefa é classificar a urgência do atendimento em: "baixa", "média" ou "alta".
-
-Diretrizes para classificação:
-- Priorize sempre os sintomas clínicos acima do nível de dor relatado, pois pacientes podem superestimar ou subestimar a dor
-- Considere a idade do paciente — idosos e crianças merecem atenção especial para os mesmos sintomas
-- Sintomas que indicam risco de vida imediato (dificuldade respiratória, dor no peito, AVC, desmaio) → sempre "alta"
-- Sintomas moderados que precisam de atenção mas não são emergência → "média"
-- Sintomas leves sem risco aparente → "baixa"
-
-Responda APENAS no seguinte formato JSON, sem texto adicional:
-{{
-    "urgency_level": "baixa" ou "média" ou "alta",
-    "reasoning": "explicação clínica breve e objetiva do motivo da classificação"
-}}
+- Dor autorrelatada: {pain_level}/10
 """
 
     max_tentativas = 3
@@ -37,36 +42,33 @@ Responda APENAS no seguinte formato JSON, sem texto adicional:
         try:
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
-                contents=prompt,
+                contents=user_prompt, # Passa apenas os dados do paciente aqui
                 config=types.GenerateContentConfig(
-                    response_mime_type="application/json"
+                    system_instruction=system_instruction, # Passa as regras aqui
+                    temperature=0.0, # GARANTE consistência clínica (sem alucinações criativas)
+                    response_mime_type="application/json",
+                    response_schema=TriageResponse, # Força a IA a usar o molde do Pydantic
                 )
             )
 
+            # O json.loads continua válido
             resultado = json.loads(response.text)
-
-            # Validate urgency level — fallback to "média" if unexpected value
-            valid_values = ["baixa", "média", "alta"]
-            if resultado.get("urgency_level") not in valid_values:
-                resultado["urgency_level"] = "média"
-
             resultado["ai_analyzed"] = True
+            
             return resultado
 
         except genai_errors.ServerError as e:
-            # Retry on server errors with 2 second delay
-            print(f"Tentativa {tentativa}/{max_tentativas} falhou: {e}")
+            print(f"Tentativa {tentativa}/{max_tentativas} falhou por erro de servidor: {e}")
             if tentativa < max_tentativas:
                 time.sleep(2) 
             else:
                 return {"urgency_level": "média", "reasoning": "Serviço temporariamente indisponível", "ai_analyzed": False}
 
         except genai_errors.ClientError as e:
-            # Invalid API key or malformed request
-            print(f"Erro na API do Gemini: {e}")
-            return {"urgency_level": "média", "reasoning": "Erro na análise automática", "ai_analyzed": False}
+            print(f"Erro na API do Gemini (Client/Auth): {e}")
+            return {"urgency_level": "média", "reasoning": "Erro na análise automática (Client)", "ai_analyzed": False}
 
-        except json.JSONDecodeError:
-            # Gemini returned response outside expected JSON format
-            print("Gemini retornou resposta fora do formato JSON esperado")
-            return {"urgency_level": "média", "reasoning": "Erro no formato da resposta", "ai_analyzed": False}
+        except (json.JSONDecodeError, ValueError) as e:
+            # ValueError pode acontecer se a resposta for bloqueada por filtros de segurança (Safety)
+            print(f"Erro no processamento da resposta da IA: {e}")
+            return {"urgency_level": "média", "reasoning": "Erro na formatação ou conteúdo bloqueado", "ai_analyzed": False}
